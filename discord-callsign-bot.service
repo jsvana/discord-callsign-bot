@@ -1,0 +1,25 @@
+[Unit]
+Description=Discord Callsign Bot
+After=network.target
+
+[Service]
+Type=oneshot
+User=discord-bot
+Group=discord-bot
+WorkingDirectory=/opt/discord-callsign-bot
+Environment="CONFIG_PATH=/opt/discord-callsign-bot/config.toml"
+ExecStart=/opt/discord-callsign-bot/discord-callsign-bot
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/discord-callsign-bot
+
+# Restart on failure
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

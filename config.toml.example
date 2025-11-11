@@ -1,0 +1,41 @@
+# Discord Configuration
+[discord]
+# Your Discord bot token from https://discord.com/developers/applications
+token = "YOUR_DISCORD_BOT_TOKEN_HERE"
+
+# The Guild (Server) ID where you want to read members from
+# To get this: Enable Developer Mode in Discord settings, right-click the server, "Copy Server ID"
+guild_id = 1234567890123456789
+
+# Output Configuration
+[output]
+# Path to the output text file
+file_path = "members.txt"
+
+# Default text to append after each member entry
+# This will be used unless overridden for specific users
+default_suffix = "73"
+
+# Manual Overrides
+# Use Discord User IDs as keys (enable Developer Mode, right-click user, "Copy User ID")
+# You can override the callsign, name, and/or suffix for specific users
+[overrides]
+
+# Example: Override everything for a specific user
+[overrides."123456789012345678"]
+callsign = "W1ABC"
+name = "John"
+suffix = "CQ CQ"
+
+# Example: Only override the callsign, keep parsed name
+[overrides."234567890123456789"]
+callsign = "K2DEF"
+
+# Example: Only override the suffix text
+[overrides."345678901234567890"]
+suffix = "QRT"
+
+# Example: Override name and suffix, keep parsed callsign
+[overrides."456789012345678901"]
+name = "Alice"
+suffix = "DX"
