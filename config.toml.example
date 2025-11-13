@@ -16,6 +16,11 @@ file_path = "members.txt"
 # This will be used unless overridden for specific users
 default_suffix = "73"
 
+# Emoji to place between callsign and name
+# Examples: "📻", "✨", "|", or just " " for a space
+# Default is a "📻" if not specified
+emoji_separator = "🌊"
+
 # Manual Overrides
 # Use Discord User IDs as keys (enable Developer Mode, right-click user, "Copy User ID")
 # You can override the callsign, name, and/or suffix for specific users

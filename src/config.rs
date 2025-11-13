@@ -1,7 +1,7 @@
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
-use anyhow::{Context, Result};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
@@ -26,7 +26,7 @@ pub struct OutputConfig {
 }
 
 fn default_emoji_separator() -> String {
-    " ".to_string()
+    "📻".to_string()
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -41,8 +41,8 @@ impl Config {
         let contents = fs::read_to_string(path)
             .with_context(|| format!("Failed to read config file: {}", path))?;
 
-        let config: Config = toml::from_str(&contents)
-            .with_context(|| "Failed to parse config file")?;
+        let config: Config =
+            toml::from_str(&contents).with_context(|| "Failed to parse config file")?;
 
         Ok(config)
     }
