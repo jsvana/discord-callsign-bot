@@ -7,6 +7,10 @@ token = "YOUR_DISCORD_BOT_TOKEN_HERE"
 # To get this: Enable Developer Mode in Discord settings, right-click the server, "Copy Server ID"
 guild_id = 1234567890123456789
 
+# Optional: Set a nickname for the bot when it joins the server
+# If not specified, the bot will use its default username
+bot_nickname = "B0T"
+
 # Output Configuration
 [output]
 # Path to the output text file

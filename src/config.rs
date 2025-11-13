@@ -15,6 +15,7 @@ pub struct Config {
 pub struct DiscordConfig {
     pub token: String,
     pub guild_id: u64,
+    pub bot_nickname: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

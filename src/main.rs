@@ -10,7 +10,7 @@ use serenity::all::GuildId;
 use serenity::async_trait;
 use serenity::prelude::*;
 use std::env;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 struct Handler {
     config: Config,
@@ -38,9 +38,18 @@ impl Handler {
 
         info!("Found {} members", members.len());
 
+        // Get the bot's own user ID to filter it out
+        let bot_user_id = ctx.cache.current_user().id;
+
         let mut entries = Vec::new();
 
         for member in members {
+            // Skip the bot itself
+            if member.user.id == bot_user_id {
+                info!("Skipping bot user: {}", member.user.name);
+                continue;
+            }
+
             // Get the display name (nickname if set, otherwise username)
             let display_name = member
                 .nick
@@ -114,6 +123,16 @@ impl Handler {
 impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: serenity::model::gateway::Ready) {
         info!("{} is connected and ready!", ready.user.name);
+
+        // Set bot nickname if configured
+        if let Some(nickname) = &self.config.discord.bot_nickname {
+            let guild_id = GuildId::new(self.config.discord.guild_id);
+            if let Err(e) = guild_id.edit_nickname(&ctx.http, Some(nickname)).await {
+                warn!("Failed to set bot nickname to '{}': {}", nickname, e);
+            } else {
+                info!("Set bot nickname to: {}", nickname);
+            }
+        }
 
         // Generate the member list when the bot starts
         if let Err(e) = self.generate_member_list(&ctx).await {
