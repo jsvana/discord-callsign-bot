@@ -12,9 +12,16 @@ pub fn write_output_file(
     path: &str,
     entries: Vec<OutputEntry>,
     emoji_separator: &str,
+    title: Option<&str>,
 ) -> Result<()> {
     let mut file =
         File::create(path).with_context(|| format!("Failed to create output file: {}", path))?;
+
+    // Write title header if configured
+    if let Some(title_text) = title {
+        writeln!(file, "# TITLE: {}", title_text)
+            .with_context(|| "Failed to write title to output file")?;
+    }
 
     // Sort entries by callsign for consistent output
     let mut sorted_entries = entries;

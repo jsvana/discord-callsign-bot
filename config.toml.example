@@ -25,6 +25,11 @@ default_suffix = "73"
 # Default is a "📻" if not specified
 emoji_separator = "🌊"
 
+# Optional: Title to display at the start of the output file
+# Will be formatted as "# TITLE: <your title>"
+# If not specified, no title line will be added
+title = "Club members"
+
 # Manual Overrides
 # Use Discord User IDs as keys (enable Developer Mode, right-click user, "Copy User ID")
 # You can override the callsign, name, and/or suffix for specific users

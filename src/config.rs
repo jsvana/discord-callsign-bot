@@ -24,6 +24,7 @@ pub struct OutputConfig {
     pub default_suffix: String,
     #[serde(default = "default_emoji_separator")]
     pub emoji_separator: String,
+    pub title: Option<String>,
 }
 
 fn default_emoji_separator() -> String {

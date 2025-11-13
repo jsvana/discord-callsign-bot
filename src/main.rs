@@ -107,8 +107,13 @@ impl Handler {
         info!("Writing {} entries to file", entries.len());
 
         // Write the output file
-        write_output_file(&self.config.output.file_path, entries, &self.config.output.emoji_separator)
-            .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
+        write_output_file(
+            &self.config.output.file_path,
+            entries,
+            &self.config.output.emoji_separator,
+            self.config.output.title.as_deref(),
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
 
         info!(
             "Successfully generated member list at: {}",
