@@ -21,6 +21,12 @@ pub struct DiscordConfig {
 pub struct OutputConfig {
     pub file_path: String,
     pub default_suffix: String,
+    #[serde(default = "default_emoji_separator")]
+    pub emoji_separator: String,
+}
+
+fn default_emoji_separator() -> String {
+    " ".to_string()
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]

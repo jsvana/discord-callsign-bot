@@ -98,7 +98,7 @@ impl Handler {
         info!("Writing {} entries to file", entries.len());
 
         // Write the output file
-        write_output_file(&self.config.output.file_path, entries)
+        write_output_file(&self.config.output.file_path, entries, &self.config.output.emoji_separator)
             .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
 
         info!(
@@ -121,8 +121,51 @@ impl EventHandler for Handler {
             std::process::exit(1);
         }
 
-        info!("Member list generation complete. Shutting down.");
-        ctx.shard.shutdown_clean();
+        info!("Member list generation complete. Bot is now listening for member changes.");
+    }
+
+    async fn guild_member_addition(&self, ctx: Context, new_member: serenity::model::guild::Member) {
+        info!("New member joined: {}", new_member.user.name);
+
+        if let Err(e) = self.generate_member_list(&ctx).await {
+            error!("Failed to regenerate member list after member addition: {:?}", e);
+        } else {
+            info!("Member list updated after new member joined");
+        }
+    }
+
+    async fn guild_member_removal(
+        &self,
+        ctx: Context,
+        _guild_id: GuildId,
+        user: serenity::model::user::User,
+        _member_data_if_available: Option<serenity::model::guild::Member>,
+    ) {
+        info!("Member left: {}", user.name);
+
+        if let Err(e) = self.generate_member_list(&ctx).await {
+            error!("Failed to regenerate member list after member removal: {:?}", e);
+        } else {
+            info!("Member list updated after member left");
+        }
+    }
+
+    async fn guild_member_update(
+        &self,
+        ctx: Context,
+        _old_if_available: Option<serenity::model::guild::Member>,
+        new: Option<serenity::model::guild::Member>,
+        _event: serenity::model::event::GuildMemberUpdateEvent,
+    ) {
+        if let Some(member) = new {
+            info!("Member updated: {}", member.user.name);
+
+            if let Err(e) = self.generate_member_list(&ctx).await {
+                error!("Failed to regenerate member list after member update: {:?}", e);
+            } else {
+                info!("Member list updated after member info changed");
+            }
+        }
     }
 }
 

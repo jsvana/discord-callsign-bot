@@ -8,7 +8,7 @@ pub struct OutputEntry {
     pub suffix: String,
 }
 
-pub fn write_output_file(path: &str, entries: Vec<OutputEntry>) -> Result<()> {
+pub fn write_output_file(path: &str, entries: Vec<OutputEntry>, emoji_separator: &str) -> Result<()> {
     let mut file = File::create(path)
         .with_context(|| format!("Failed to create output file: {}", path))?;
 
@@ -17,7 +17,7 @@ pub fn write_output_file(path: &str, entries: Vec<OutputEntry>) -> Result<()> {
     sorted_entries.sort_by(|a, b| a.callsign.cmp(&b.callsign));
 
     for entry in sorted_entries {
-        writeln!(file, "{} {} {}", entry.callsign, entry.name, entry.suffix)
+        writeln!(file, "{}{}{} {}", entry.callsign, emoji_separator, entry.name, entry.suffix)
             .with_context(|| "Failed to write to output file")?;
     }
 
