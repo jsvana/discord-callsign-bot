@@ -1,11 +1,11 @@
 mod config;
-mod parser;
 mod output;
+mod parser;
 
 use anyhow::Result;
 use config::Config;
-use parser::CallsignParser;
 use output::{write_output_file, OutputEntry};
+use parser::CallsignParser;
 use serenity::all::GuildId;
 use serenity::async_trait;
 use serenity::prelude::*;
@@ -148,11 +148,18 @@ impl EventHandler for Handler {
         info!("Member list generation complete. Bot is now listening for member changes.");
     }
 
-    async fn guild_member_addition(&self, ctx: Context, new_member: serenity::model::guild::Member) {
+    async fn guild_member_addition(
+        &self,
+        ctx: Context,
+        new_member: serenity::model::guild::Member,
+    ) {
         info!("New member joined: {}", new_member.user.name);
 
         if let Err(e) = self.generate_member_list(&ctx).await {
-            error!("Failed to regenerate member list after member addition: {:?}", e);
+            error!(
+                "Failed to regenerate member list after member addition: {:?}",
+                e
+            );
         } else {
             info!("Member list updated after new member joined");
         }
@@ -168,7 +175,10 @@ impl EventHandler for Handler {
         info!("Member left: {}", user.name);
 
         if let Err(e) = self.generate_member_list(&ctx).await {
-            error!("Failed to regenerate member list after member removal: {:?}", e);
+            error!(
+                "Failed to regenerate member list after member removal: {:?}",
+                e
+            );
         } else {
             info!("Member list updated after member left");
         }
@@ -185,7 +195,10 @@ impl EventHandler for Handler {
             info!("Member updated: {}", member.user.name);
 
             if let Err(e) = self.generate_member_list(&ctx).await {
-                error!("Failed to regenerate member list after member update: {:?}", e);
+                error!(
+                    "Failed to regenerate member list after member update: {:?}",
+                    e
+                );
             } else {
                 info!("Member list updated after member info changed");
             }
@@ -220,7 +233,10 @@ async fn main() -> Result<()> {
 
     // Start the bot
     info!("Starting Discord bot...");
-    client.start().await.map_err(|e| anyhow::anyhow!("Failed to start Discord client: {}", e))?;
+    client
+        .start()
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to start Discord client: {}", e))?;
 
     Ok(())
 }

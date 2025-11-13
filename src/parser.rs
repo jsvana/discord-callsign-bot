@@ -62,6 +62,7 @@ impl CallsignParser {
     }
 
     /// Validate if a string looks like a callsign
+    #[allow(dead_code)]
     pub fn is_callsign(&self, text: &str) -> bool {
         self.callsign_regex.is_match(text)
     }
