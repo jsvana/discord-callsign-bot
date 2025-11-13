@@ -189,3 +189,7 @@ For more information about amateur radio, visit:
 - ARRL: https://www.arrl.org/
 - POTA: https://pota.app/
 - SOTA: https://www.sota.org.uk/
+
+## Acknowledgments
+
+Special thanks to **KI2D**, author of [Ham2K PoLo](https://polo.ham2k.com/), for creating an excellent portable logging application for amateur radio operators.
