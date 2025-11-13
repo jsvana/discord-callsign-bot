@@ -1,17 +1,49 @@
 # Discord Callsign Bot
 
-A Rust-based Discord bot that reads server members with amateur radio callsigns in their names and generates a formatted text file.
+A Rust-based Discord bot that automatically generates and maintains a formatted list of amateur radio operators from your Discord server. The bot intelligently parses callsigns from member names, optionally looks up operator information from QRZ.com, and outputs a clean, sorted text file perfect for sharing with your radio club or field day operations.
+
+## What Does This Bot Do?
+
+This bot helps amateur radio clubs and groups manage their member rosters by:
+
+1. **Scanning your Discord server** for members with callsigns in their names
+2. **Automatically parsing callsigns** from various name formats (nicknames, display names, usernames)
+3. **Looking up operator names** from QRZ.com's callbook database (optional)
+4. **Generating a formatted text file** with callsigns, names, and custom suffixes
+5. **Updating in real-time** when members join, leave, or update their profiles
+
+Perfect for:
+- Amateur radio clubs maintaining member lists
+- Field day operations and portable activations
+- POTA/SOTA activation groups
+- Emergency communications teams
+- Any ham radio community on Discord
 
 ## Features
 
-- **Automatic Callsign Parsing**: Extracts callsigns from Discord display names in various formats:
-  - `W6JSV - Jay` → Callsign: W6JSV, Name: Jay
-  - `Forrest KI7QCF` → Callsign: KI7QCF, Name: Forrest
-  - `Jay (W6JSV)` → Callsign: W6JSV, Name: Jay
+- **Smart Callsign Detection**:
+  - Checks multiple Discord name fields (nickname → global name → username)
+  - Parses callsigns from various formats:
+    - `W6JSV - Jay` → Callsign: W6JSV, Name: Jay
+    - `Forrest KI7QCF` → Callsign: KI7QCF, Name: Forrest
+    - `Jay (w6jsv)` → Callsign: W6JSV, Name: Jay
+  - Case-insensitive matching with automatic uppercase normalization
+  - Supports callsign-only names
+
+- **QRZ.com Integration** (Optional):
+  - Automatically looks up operator names and nicknames
+  - Falls back to Discord names if QRZ lookup fails
+  - Prioritizes nickname → first name → last name from QRZ data
+
+- **Real-Time Updates**:
+  - Regenerates the member list when users join or leave
+  - Updates when members change their nicknames
+
+- **Deduplication**: Ensures each callsign appears only once in the output
 
 - **Manual Overrides**: Configure specific callsigns, names, or suffix text for individual users via TOML configuration
 
-- **Configurable Output**: Customize the output format and default suffix text
+- **Configurable Output**: Customize emoji separators, default suffix text, and file titles
 
 - **Sorted Output**: Members are sorted alphabetically by callsign in the output file
 
@@ -86,23 +118,33 @@ cargo run --release
 The bot will:
 1. Connect to Discord
 2. Fetch all members from the configured server
-3. Parse callsigns and names
-4. Generate the output file
-5. Automatically shut down
+3. Parse callsigns from multiple name fields (nickname, global name, username)
+4. Look up names from QRZ.com (if configured)
+5. Generate the output file
+6. Stay running and monitor for member changes
+7. Automatically regenerate the file when members join, leave, or update their profiles
+
+**Note**: The bot runs continuously to keep the member list up-to-date. Press Ctrl+C to stop it.
 
 ### Output Format
 
 The generated file will have one line per member:
 ```
-<CALLSIGN> <NAME> <SUFFIX>
+<CALLSIGN> <EMOJI_SEPARATOR> <NAME> <SUFFIX>
 ```
 
 Example output (`members.txt`):
 ```
-KI7QCF Forrest 73
-W6JSV Jay 73
-W1ABC John CQ CQ
+# TITLE: Club members
+KI7QCF 📻 Forrest 73
+W6JSV 📻 Jay 73
+W1ABC 🌊 John CQ CQ
 ```
+
+- Callsigns are automatically converted to uppercase
+- Entries are sorted alphabetically by callsign
+- Duplicate callsigns are automatically filtered out
+- The emoji separator can be customized in the config (default: 📻)
 
 ### Running with Custom Config Path
 
@@ -143,10 +185,22 @@ docker run -v $(pwd)/config.toml:/app/config.toml discord-callsign-bot
 ### `[discord]`
 - `token` (required): Your Discord bot token
 - `guild_id` (required): The Discord server ID to read members from
+- `bot_nickname` (optional): Set a custom nickname for the bot
+
+### `[qrz]` (Optional)
+Enable QRZ.com callbook lookups for automatic name retrieval:
+- `username` (required if using QRZ): Your QRZ.com username
+- `password` (required if using QRZ): Your QRZ.com password
+
+**Note**: Requires a QRZ.com XML subscription (https://www.qrz.com/i/subscriptions.html)
+
+To disable QRZ lookups, simply comment out or remove the entire `[qrz]` section.
 
 ### `[output]`
 - `file_path` (required): Path where the member list will be saved
 - `default_suffix` (required): Default text appended after each member entry
+- `emoji_separator` (optional): Emoji or text between callsign and name (default: "📻")
+- `title` (optional): Title header for the output file
 
 ### `[overrides."USER_ID"]`
 All fields are optional. Only specify what you want to override:
@@ -162,8 +216,20 @@ All fields are optional. Only specify what you want to override:
 
 ### No callsigns found
 - Check that member display names contain valid amateur radio callsigns
-- Valid formats: W6JSV, KI7QCF, N0CALL, etc.
+- Valid formats: W6JSV, KI7QCF, N0CALL, etc. (case-insensitive)
 - Callsigns must follow the pattern: `[PREFIX][DIGIT][SUFFIX]`
+- The bot checks nickname, global name, and username in that order
+
+### QRZ lookups failing
+- Verify your QRZ username and password are correct in `config.toml`
+- Ensure you have an active QRZ XML subscription
+- Check the logs for specific error messages (run with `RUST_LOG=info`)
+- The bot will fall back to Discord names if QRZ lookups fail
+
+### Duplicate callsigns
+- The bot automatically deduplicates entries, keeping the first occurrence
+- Check the logs for warnings about duplicate callsigns
+- Users with the same callsign will only appear once in the output
 
 ### Permission denied errors
 - Ensure the output directory is writable
