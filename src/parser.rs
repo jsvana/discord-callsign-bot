@@ -8,7 +8,7 @@ pub struct MemberInfo {
 
 pub struct CallsignParser {
     // Matches amateur radio callsigns
-    // Format: [prefix(1-2 chars)][digit][suffix(1-3 chars)]
+    // Format: [prefix(1-2 chars)][digit][suffix(1-4 chars)]
     // Examples: W6JSV, KI7QCF, N0CALL, etc.
     callsign_regex: Regex,
 }
@@ -19,9 +19,9 @@ impl CallsignParser {
         // \b - word boundary
         // [A-Z0-9]{1,2} - 1-2 character prefix (can be letters or numbers)
         // [0-9] - single digit
-        // [A-Z]{1,3} - 1-3 letter suffix
+        // [A-Z]{1,4} - 1-4 letter suffix
         // \b - word boundary
-        let callsign_regex = Regex::new(r"\b([A-Z0-9]{1,2}[0-9][A-Z]{1,3})\b")
+        let callsign_regex = Regex::new(r"\b([A-Z0-9]{1,2}[0-9][A-Z]{1,4})\b")
             .expect("Failed to compile callsign regex");
 
         Self { callsign_regex }
