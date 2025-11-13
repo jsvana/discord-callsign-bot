@@ -13,6 +13,7 @@ regex = "1.10"
 anyhow = "1.0"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+qrz-xml = { version = "0.1", default-features = false, features = ["rustls-tls"] }
 
 [[bin]]
 name = "discord-callsign-bot"

@@ -1,27 +1,32 @@
 mod config;
 mod output;
 mod parser;
+mod qrz;
 
 use anyhow::Result;
 use config::Config;
 use output::{write_output_file, OutputEntry};
 use parser::CallsignParser;
+use qrz::QrzClient;
 use serenity::all::GuildId;
 use serenity::async_trait;
 use serenity::prelude::*;
 use std::env;
+use std::sync::Arc;
 use tracing::{error, info, warn};
 
 struct Handler {
     config: Config,
     parser: CallsignParser,
+    qrz_client: Option<Arc<QrzClient>>,
 }
 
 impl Handler {
-    fn new(config: Config) -> Self {
+    fn new(config: Config, qrz_client: Option<Arc<QrzClient>>) -> Self {
         Self {
             config,
             parser: CallsignParser::new(),
+            qrz_client,
         }
     }
 
@@ -91,9 +96,37 @@ impl Handler {
                 });
             } else if let Some(parsed) = self.parser.parse(&display_name) {
                 // Successfully parsed callsign from display name
+                let mut name = parsed.name.clone();
+
+                // Try to get name from QRZ if client is available
+                if let Some(qrz_client) = &self.qrz_client {
+                    match qrz_client.lookup_callsign(&parsed.callsign).await {
+                        Ok(qrz_info) => {
+                            if let Some(qrz_name) = QrzClient::get_display_name(&qrz_info) {
+                                info!(
+                                    "Using QRZ name '{}' for callsign {}",
+                                    qrz_name, parsed.callsign
+                                );
+                                name = qrz_name;
+                            } else {
+                                info!(
+                                    "No name found in QRZ for {}, using Discord name: {}",
+                                    parsed.callsign, name
+                                );
+                            }
+                        }
+                        Err(e) => {
+                            warn!(
+                                "Failed to lookup callsign {} in QRZ: {:?}. Using Discord name: {}",
+                                parsed.callsign, e, name
+                            );
+                        }
+                    }
+                }
+
                 entries.push(OutputEntry {
                     callsign: parsed.callsign,
-                    name: parsed.name,
+                    name,
                     suffix: self.config.output.default_suffix.clone(),
                 });
             } else {
@@ -223,11 +256,29 @@ async fn main() -> Result<()> {
 
     info!("Configuration loaded from: {}", config_path);
 
+    // Initialize QRZ client if credentials are configured
+    let qrz_client = if let Some(qrz_config) = &config.qrz {
+        info!("QRZ credentials found, initializing QRZ client...");
+        match QrzClient::new(qrz_config).await {
+            Ok(client) => {
+                info!("QRZ client initialized successfully");
+                Some(Arc::new(client))
+            }
+            Err(e) => {
+                warn!("Failed to initialize QRZ client: {:?}. Continuing without QRZ lookups.", e);
+                None
+            }
+        }
+    } else {
+        info!("No QRZ credentials configured, skipping QRZ lookups");
+        None
+    };
+
     // Set up Discord client
     let intents = GatewayIntents::GUILDS | GatewayIntents::GUILD_MEMBERS;
 
     let mut client = Client::builder(&config.discord.token, intents)
-        .event_handler(Handler::new(config))
+        .event_handler(Handler::new(config, qrz_client))
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create Discord client: {}", e))?;
 

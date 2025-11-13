@@ -7,6 +7,7 @@ use std::fs;
 pub struct Config {
     pub discord: DiscordConfig,
     pub output: OutputConfig,
+    pub qrz: Option<QrzConfig>,
     #[serde(default)]
     pub overrides: HashMap<String, Override>,
 }
@@ -16,6 +17,12 @@ pub struct DiscordConfig {
     pub token: String,
     pub guild_id: u64,
     pub bot_nickname: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct QrzConfig {
+    pub username: String,
+    pub password: String,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

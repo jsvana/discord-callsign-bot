@@ -11,6 +11,17 @@ guild_id = 1234567890123456789
 # If not specified, the bot will use its default username
 bot_nickname = "B0T"
 
+# QRZ.com XML API Configuration (Optional)
+# If configured, the bot will lookup callsigns in QRZ.com to get real names
+# This requires a QRZ.com XML subscription: https://www.qrz.com/i/subscriptions.html
+[qrz]
+# Your QRZ.com username
+username = "YOUR_QRZ_USERNAME"
+# Your QRZ.com password
+password = "YOUR_QRZ_PASSWORD"
+
+# Note: To disable QRZ lookups, simply comment out or remove the entire [qrz] section above
+
 # Output Configuration
 [output]
 # Path to the output text file
