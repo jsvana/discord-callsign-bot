@@ -16,12 +16,13 @@ pub struct CallsignParser {
 impl CallsignParser {
     pub fn new() -> Self {
         // Pattern explanation:
+        // (?i) - case-insensitive flag
         // \b - word boundary
         // [A-Z0-9]{1,2} - 1-2 character prefix (can be letters or numbers)
         // [0-9] - single digit
         // [A-Z]{1,4} - 1-4 letter suffix
         // \b - word boundary
-        let callsign_regex = Regex::new(r"\b([A-Z0-9]{1,2}[0-9][A-Z]{1,4})\b")
+        let callsign_regex = Regex::new(r"(?i)\b([A-Z0-9]{1,2}[0-9][A-Z]{1,4})\b")
             .expect("Failed to compile callsign regex");
 
         Self { callsign_regex }
@@ -35,13 +36,13 @@ impl CallsignParser {
     pub fn parse(&self, display_name: &str) -> Option<MemberInfo> {
         // Find the callsign in the display name
         let callsign_match = self.callsign_regex.find(display_name)?;
-        let callsign = callsign_match.as_str().to_string();
+        let callsign = callsign_match.as_str().to_uppercase();
 
         // Extract the name by removing the callsign and cleaning up
         let mut name = display_name.to_string();
 
-        // Remove the callsign
-        name = name.replace(&callsign, "");
+        // Remove the callsign (use the original matched text, not the uppercased version)
+        name = name.replace(callsign_match.as_str(), "");
 
         // Remove common separators and punctuation
         name = name
@@ -112,5 +113,37 @@ mod tests {
         assert!(parser.is_callsign("N0CALL"));
         assert!(!parser.is_callsign("notacallsign"));
         assert!(!parser.is_callsign("123456"));
+    }
+
+    #[test]
+    fn test_parse_lowercase_callsign_only() {
+        let parser = CallsignParser::new();
+        let result = parser.parse("w6jsv").unwrap();
+        assert_eq!(result.callsign, "W6JSV");
+        assert_eq!(result.name, "W6JSV");
+    }
+
+    #[test]
+    fn test_parse_lowercase_callsign_dash_name() {
+        let parser = CallsignParser::new();
+        let result = parser.parse("w6jsv - Jay").unwrap();
+        assert_eq!(result.callsign, "W6JSV");
+        assert_eq!(result.name, "Jay");
+    }
+
+    #[test]
+    fn test_parse_mixed_case_name_callsign() {
+        let parser = CallsignParser::new();
+        let result = parser.parse("Forrest ki7qcf").unwrap();
+        assert_eq!(result.callsign, "KI7QCF");
+        assert_eq!(result.name, "Forrest");
+    }
+
+    #[test]
+    fn test_parse_name_parens_lowercase_callsign() {
+        let parser = CallsignParser::new();
+        let result = parser.parse("Jay (w6jsv)").unwrap();
+        assert_eq!(result.callsign, "W6JSV");
+        assert_eq!(result.name, "Jay");
     }
 }
