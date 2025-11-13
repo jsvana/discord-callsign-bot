@@ -11,6 +11,7 @@ use qrz::QrzClient;
 use serenity::all::GuildId;
 use serenity::async_trait;
 use serenity::prelude::*;
+use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use tracing::{error, info, warn};
@@ -55,22 +56,37 @@ impl Handler {
                 continue;
             }
 
-            // Get the display name (nickname if set, otherwise username)
-            let display_name = member
-                .nick
-                .as_ref()
-                .unwrap_or(&member.user.name)
-                .to_string();
+            // Try to find a valid callsign in multiple name fields
+            // Priority: nick -> global_name -> user.name
+            let name_fields = [
+                member.nick.as_ref(),
+                member.user.global_name.as_ref(),
+                Some(&member.user.name),
+            ];
 
-            info!("Processing member: {}", display_name);
+            let (parsed, display_name) = name_fields
+                .iter()
+                .filter_map(|field| {
+                    field.map(|name| {
+                        let parsed = self.parser.parse(name);
+                        (parsed, name.clone())
+                    })
+                })
+                .find(|(parsed, _)| parsed.is_some())
+                .unwrap_or((None, member.user.name.clone()));
+
+            info!(
+                "Processing member: {} (parsed: {})",
+                display_name,
+                if parsed.is_some() { "✓" } else { "✗" }
+            );
 
             // Check if there's a manual override for this user
             let user_id = member.user.id.to_string();
             if let Some(override_config) = self.config.get_override(&user_id) {
                 info!("Using override for user {}", user_id);
 
-                // Parse normally first to get defaults
-                let parsed = self.parser.parse(&display_name);
+                // Use the parsed callsign if available
 
                 let callsign = override_config
                     .callsign
@@ -94,8 +110,8 @@ impl Handler {
                     name,
                     suffix,
                 });
-            } else if let Some(parsed) = self.parser.parse(&display_name) {
-                // Successfully parsed callsign from display name
+            } else if let Some(parsed) = parsed {
+                // Successfully parsed callsign from one of the name fields
                 let mut name = parsed.name.clone();
 
                 // Try to get name from QRZ if client is available
@@ -137,12 +153,32 @@ impl Handler {
             }
         }
 
-        info!("Writing {} entries to file", entries.len());
+        // Deduplicate entries by callsign (keep first occurrence)
+        let mut seen_callsigns = HashMap::new();
+        let mut unique_entries = Vec::new();
+
+        for entry in entries {
+            if !seen_callsigns.contains_key(&entry.callsign) {
+                seen_callsigns.insert(entry.callsign.clone(), true);
+                unique_entries.push(entry);
+            } else {
+                warn!(
+                    "Skipping duplicate callsign: {} (already processed)",
+                    entry.callsign
+                );
+            }
+        }
+
+        info!(
+            "Writing {} unique entries to file (filtered {} duplicates)",
+            unique_entries.len(),
+            seen_callsigns.len() - unique_entries.len()
+        );
 
         // Write the output file
         write_output_file(
             &self.config.output.file_path,
-            entries,
+            unique_entries,
             &self.config.output.emoji_separator,
             self.config.output.title.as_deref(),
         )
