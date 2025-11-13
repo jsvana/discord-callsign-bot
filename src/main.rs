@@ -265,7 +265,10 @@ async fn main() -> Result<()> {
                 Some(Arc::new(client))
             }
             Err(e) => {
-                warn!("Failed to initialize QRZ client: {:?}. Continuing without QRZ lookups.", e);
+                warn!(
+                    "Failed to initialize QRZ client: {:?}. Continuing without QRZ lookups.",
+                    e
+                );
                 None
             }
         }

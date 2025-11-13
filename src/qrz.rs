@@ -104,7 +104,10 @@ mod tests {
             name: Some("Smith".to_string()),
             nickname: None,
         };
-        assert_eq!(QrzClient::get_display_name(&info), Some("Smith".to_string()));
+        assert_eq!(
+            QrzClient::get_display_name(&info),
+            Some("Smith".to_string())
+        );
     }
 
     #[test]
