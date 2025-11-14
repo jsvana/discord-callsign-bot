@@ -6,17 +6,22 @@ use std::fs;
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     pub discord: DiscordConfig,
-    pub output: OutputConfig,
     pub qrz: Option<QrzConfig>,
-    #[serde(default)]
-    pub overrides: HashMap<String, Override>,
+    pub guilds: Vec<GuildConfig>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DiscordConfig {
     pub token: String,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct GuildConfig {
     pub guild_id: u64,
     pub bot_nickname: Option<String>,
+    pub output: OutputConfig,
+    #[serde(default)]
+    pub overrides: HashMap<String, Override>,
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -25,7 +30,7 @@ pub struct QrzConfig {
     pub password: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct OutputConfig {
     pub file_path: String,
     pub default_suffix: String,
@@ -57,6 +62,12 @@ impl Config {
         Ok(config)
     }
 
+    pub fn get_guild_config(&self, guild_id: u64) -> Option<&GuildConfig> {
+        self.guilds.iter().find(|g| g.guild_id == guild_id)
+    }
+}
+
+impl GuildConfig {
     pub fn get_override(&self, discord_id: &str) -> Option<&Override> {
         self.overrides.get(discord_id)
     }

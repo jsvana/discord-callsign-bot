@@ -3,17 +3,10 @@
 # Your Discord bot token from https://discord.com/developers/applications
 token = "YOUR_DISCORD_BOT_TOKEN_HERE"
 
-# The Guild (Server) ID where you want to read members from
-# To get this: Enable Developer Mode in Discord settings, right-click the server, "Copy Server ID"
-guild_id = 1234567890123456789
-
-# Optional: Set a nickname for the bot when it joins the server
-# If not specified, the bot will use its default username
-bot_nickname = "B0T"
-
 # QRZ.com XML API Configuration (Optional)
 # If configured, the bot will lookup callsigns in QRZ.com to get real names
 # This requires a QRZ.com XML subscription: https://www.qrz.com/i/subscriptions.html
+# QRZ credentials are shared across all servers
 [qrz]
 # Your QRZ.com username
 username = "YOUR_QRZ_USERNAME"
@@ -22,9 +15,26 @@ password = "YOUR_QRZ_PASSWORD"
 
 # Note: To disable QRZ lookups, simply comment out or remove the entire [qrz] section above
 
-# Output Configuration
-[output]
-# Path to the output text file
+# ============================================================================
+# Guild (Server) Configurations
+# ============================================================================
+# Each [[guilds]] entry represents one Discord server to monitor
+# You can add multiple [[guilds]] sections to monitor multiple servers!
+# Each server gets its own output file and can have custom settings
+
+# First Server Configuration
+[[guilds]]
+# The Guild (Server) ID where you want to read members from
+# To get this: Enable Developer Mode in Discord settings, right-click the server, "Copy Server ID"
+guild_id = 1234567890123456789
+
+# Optional: Set a nickname for the bot when it joins this server
+# If not specified, the bot will use its default username
+bot_nickname = "B0T"
+
+# Output Configuration for this server
+[guilds.output]
+# Path to the output text file for this server
 file_path = "members.txt"
 
 # Default text to append after each member entry
@@ -33,7 +43,7 @@ default_suffix = "73"
 
 # Emoji to place between callsign and name
 # Examples: "📻", "✨", "|", or just " " for a space
-# Default is a "📻" if not specified
+# Default is "📻" if not specified
 emoji_separator = "🌊"
 
 # Optional: Title to display at the start of the output file
@@ -41,30 +51,67 @@ emoji_separator = "🌊"
 # If not specified, no title line will be added
 title = "Club members"
 
-# Manual Overrides
+# Manual Overrides for this server
 # Use Discord User IDs as keys (enable Developer Mode, right-click user, "Copy User ID")
 # You can override the callsign, name, and/or suffix for specific users
-[overrides]
+# NOTE: Overrides are per-server, so the same user can have different settings on different servers!
 
 # Example: Override everything for a specific user
-[overrides."123456789012345678"]
+[guilds.overrides."123456789012345678"]
 callsign = "W1ABC"
 name = "John"
 suffix = "CQ CQ"
 
 # Example: Only override the callsign, keep parsed name
-[overrides."234567890123456789"]
+[guilds.overrides."234567890123456789"]
 callsign = "K2DEF"
 
 # Example: Only override the suffix text
-[overrides."345678901234567890"]
+[guilds.overrides."345678901234567890"]
 suffix = "QRT"
 
 # Example: Override name and suffix, keep parsed callsign
-[overrides."456789012345678901"]
+[guilds.overrides."456789012345678901"]
 name = "Alice"
 suffix = "DX"
 
 # Example: Override emoji separator for a specific user
-[overrides."567890123456789012"]
+[guilds.overrides."567890123456789012"]
 emoji = "✨"
+
+# ============================================================================
+# Second Server Configuration (Example)
+# ============================================================================
+# Uncomment this section to monitor a second Discord server
+
+# [[guilds]]
+# guild_id = 9876543210987654321
+# bot_nickname = "RadioBot"
+#
+# [guilds.output]
+# file_path = "server2-members.txt"
+# default_suffix = "CQ"
+# emoji_separator = "📻"
+# title = "Second Server Members"
+#
+# # This server can have its own overrides
+# [guilds.overrides."123456789012345678"]
+# # Same user, different callsign on this server!
+# callsign = "N2XYZ"
+# name = "Johnny"
+# suffix = "DX operator"
+
+# ============================================================================
+# Third Server Configuration (Example)
+# ============================================================================
+# You can add as many servers as you want!
+
+# [[guilds]]
+# guild_id = 1111222233334444555
+# bot_nickname = "HamBot"
+#
+# [guilds.output]
+# file_path = "pota-members.txt"
+# default_suffix = "POTA hunter"
+# emoji_separator = "🏞️"
+# title = "POTA Activation Group"

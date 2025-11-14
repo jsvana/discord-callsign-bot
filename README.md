@@ -6,10 +6,10 @@ A Rust-based Discord bot that automatically generates and maintains a formatted 
 
 This bot helps amateur radio clubs and groups manage their member rosters by:
 
-1. **Scanning your Discord server** for members with callsigns in their names
+1. **Scanning your Discord servers** (supports multiple servers!) for members with callsigns in their names
 2. **Automatically parsing callsigns** from various name formats (nicknames, display names, usernames)
 3. **Looking up operator names** from QRZ.com's callbook database (optional)
-4. **Generating a formatted text file** with callsigns, names, and custom suffixes
+4. **Generating formatted text files** with callsigns, names, and custom suffixes (separate file per server)
 5. **Updating in real-time** when members join, leave, or update their profiles
 
 Perfect for:
@@ -68,10 +68,11 @@ Perfect for:
    - Select permissions: `Read Messages/View Channels`
 7. Copy the generated URL and open it in your browser to invite the bot to your server
 
-### 2. Get Your Guild (Server) ID
+### 2. Get Your Guild (Server) IDs
 
 1. In Discord, go to User Settings → Advanced → Enable "Developer Mode"
 2. Right-click on your server icon and click "Copy Server ID"
+3. Repeat for each server you want the bot to monitor
 
 ### 3. Configure the Bot
 
@@ -85,24 +86,36 @@ nano config.toml
 
 Update the following fields:
 - `discord.token`: Your bot token from step 1
-- `discord.guild_id`: Your server ID from step 2
-- `output.file_path`: Where to save the output file (default: `members.txt`)
-- `output.default_suffix`: Text to append after each entry (e.g., "73")
+- For each server you want to monitor, add a `[[guilds]]` entry with:
+  - `guild_id`: Your server ID from step 2
+  - `guilds.output.file_path`: Where to save the output file for this server (e.g., `members.txt`)
+  - `guilds.output.default_suffix`: Text to append after each entry (e.g., "73")
+
+You can configure multiple servers - see the example in the configuration file!
 
 ### 4. Add Manual Overrides (Optional)
 
-To override callsign/name/suffix/emoji for specific users:
+To override callsign/name/suffix/emoji for specific users (per-server):
 
 1. In Discord, right-click on a user and select "Copy User ID"
-2. Add an override section in `config.toml`:
+2. Add an override section under the appropriate guild in `config.toml`:
 
 ```toml
-[overrides."USER_ID_HERE"]
+[[guilds]]
+guild_id = 123456789
+
+[guilds.output]
+file_path = "members.txt"
+# ... other settings ...
+
+[guilds.overrides."USER_ID_HERE"]
 callsign = "W1ABC"  # Optional: override callsign
 name = "John"       # Optional: override name
 suffix = "CQ CQ"    # Optional: override suffix text
 emoji = "✨"        # Optional: override emoji separator
 ```
+
+Note: Overrides are per-server, so the same user can have different callsigns/names on different servers!
 
 ## Usage
 
@@ -185,11 +198,9 @@ docker run -v $(pwd)/config.toml:/app/config.toml discord-callsign-bot
 
 ### `[discord]`
 - `token` (required): Your Discord bot token
-- `guild_id` (required): The Discord server ID to read members from
-- `bot_nickname` (optional): Set a custom nickname for the bot
 
 ### `[qrz]` (Optional)
-Enable QRZ.com callbook lookups for automatic name retrieval:
+Enable QRZ.com callbook lookups for automatic name retrieval (shared across all servers):
 - `username` (required if using QRZ): Your QRZ.com username
 - `password` (required if using QRZ): Your QRZ.com password
 
@@ -197,18 +208,26 @@ Enable QRZ.com callbook lookups for automatic name retrieval:
 
 To disable QRZ lookups, simply comment out or remove the entire `[qrz]` section.
 
-### `[output]`
-- `file_path` (required): Path where the member list will be saved
+### `[[guilds]]` (Array - add one per server)
+Each `[[guilds]]` entry configures monitoring for one Discord server:
+- `guild_id` (required): The Discord server ID to read members from
+- `bot_nickname` (optional): Set a custom nickname for the bot on this server
+
+### `[guilds.output]`
+Output configuration for each server:
+- `file_path` (required): Path where the member list will be saved for this server
 - `default_suffix` (required): Default text appended after each member entry
 - `emoji_separator` (optional): Emoji or text between callsign and name (default: "📻")
 - `title` (optional): Title header for the output file
 
-### `[overrides."USER_ID"]`
-All fields are optional. Only specify what you want to override:
+### `[guilds.overrides."USER_ID"]`
+Per-server user overrides. All fields are optional. Only specify what you want to override:
 - `callsign`: Override the parsed callsign
 - `name`: Override the parsed name
 - `suffix`: Override the default suffix for this user
 - `emoji`: Override the emoji separator for this user
+
+**Note**: Overrides are per-server, allowing different settings for the same user across different servers.
 
 ## Troubleshooting
 

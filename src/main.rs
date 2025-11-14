@@ -31,8 +31,12 @@ impl Handler {
         }
     }
 
-    async fn generate_member_list(&self, ctx: &Context) -> Result<()> {
-        let guild_id = GuildId::new(self.config.discord.guild_id);
+    async fn generate_member_list(
+        &self,
+        ctx: &Context,
+        guild_config: &config::GuildConfig,
+    ) -> Result<()> {
+        let guild_id = GuildId::new(guild_config.guild_id);
 
         info!("Fetching members from guild {}", guild_id);
 
@@ -83,7 +87,7 @@ impl Handler {
 
             // Check if there's a manual override for this user
             let user_id = member.user.id.to_string();
-            if let Some(override_config) = self.config.get_override(&user_id) {
+            if let Some(override_config) = guild_config.get_override(&user_id) {
                 info!("Using override for user {}", user_id);
 
                 // Use the parsed callsign if available
@@ -103,12 +107,12 @@ impl Handler {
                 let suffix = override_config
                     .suffix
                     .clone()
-                    .unwrap_or_else(|| self.config.output.default_suffix.clone());
+                    .unwrap_or_else(|| guild_config.output.default_suffix.clone());
 
                 let emoji_separator = override_config
                     .emoji
                     .clone()
-                    .unwrap_or_else(|| self.config.output.emoji_separator.clone());
+                    .unwrap_or_else(|| guild_config.output.emoji_separator.clone());
 
                 entries.push(OutputEntry {
                     callsign,
@@ -149,8 +153,8 @@ impl Handler {
                 entries.push(OutputEntry {
                     callsign: parsed.callsign,
                     name,
-                    suffix: self.config.output.default_suffix.clone(),
-                    emoji_separator: self.config.output.emoji_separator.clone(),
+                    suffix: guild_config.output.default_suffix.clone(),
+                    emoji_separator: guild_config.output.emoji_separator.clone(),
                 });
             } else {
                 info!(
@@ -184,15 +188,15 @@ impl Handler {
 
         // Write the output file
         write_output_file(
-            &self.config.output.file_path,
+            &guild_config.output.file_path,
             unique_entries,
-            self.config.output.title.as_deref(),
+            guild_config.output.title.as_deref(),
         )
         .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
 
         info!(
             "Successfully generated member list at: {}",
-            self.config.output.file_path
+            guild_config.output.file_path
         );
 
         Ok(())
@@ -204,23 +208,34 @@ impl EventHandler for Handler {
     async fn ready(&self, ctx: Context, ready: serenity::model::gateway::Ready) {
         info!("{} is connected and ready!", ready.user.name);
 
-        // Set bot nickname if configured
-        if let Some(nickname) = &self.config.discord.bot_nickname {
-            let guild_id = GuildId::new(self.config.discord.guild_id);
-            if let Err(e) = guild_id.edit_nickname(&ctx.http, Some(nickname)).await {
-                warn!("Failed to set bot nickname to '{}': {}", nickname, e);
-            } else {
-                info!("Set bot nickname to: {}", nickname);
+        // Process each configured guild
+        for guild_config in &self.config.guilds {
+            let guild_id = GuildId::new(guild_config.guild_id);
+            info!("Processing guild: {}", guild_id);
+
+            // Set bot nickname if configured for this guild
+            if let Some(nickname) = &guild_config.bot_nickname {
+                if let Err(e) = guild_id.edit_nickname(&ctx.http, Some(nickname)).await {
+                    warn!(
+                        "Failed to set bot nickname to '{}' in guild {}: {}",
+                        nickname, guild_id, e
+                    );
+                } else {
+                    info!("Set bot nickname to '{}' in guild {}", nickname, guild_id);
+                }
+            }
+
+            // Generate the member list when the bot starts
+            if let Err(e) = self.generate_member_list(&ctx, guild_config).await {
+                error!(
+                    "Failed to generate member list for guild {}: {:?}",
+                    guild_id, e
+                );
+                std::process::exit(1);
             }
         }
 
-        // Generate the member list when the bot starts
-        if let Err(e) = self.generate_member_list(&ctx).await {
-            error!("Failed to generate member list: {:?}", e);
-            std::process::exit(1);
-        }
-
-        info!("Member list generation complete. Bot is now listening for member changes.");
+        info!("Member list generation complete for all guilds. Bot is now listening for member changes.");
     }
 
     async fn guild_member_addition(
@@ -228,34 +243,53 @@ impl EventHandler for Handler {
         ctx: Context,
         new_member: serenity::model::guild::Member,
     ) {
-        info!("New member joined: {}", new_member.user.name);
+        let guild_id = new_member.guild_id.get();
 
-        if let Err(e) = self.generate_member_list(&ctx).await {
-            error!(
-                "Failed to regenerate member list after member addition: {:?}",
-                e
+        // Check if this guild is configured
+        if let Some(guild_config) = self.config.get_guild_config(guild_id) {
+            info!(
+                "New member joined guild {}: {}",
+                guild_id, new_member.user.name
             );
-        } else {
-            info!("Member list updated after new member joined");
+
+            if let Err(e) = self.generate_member_list(&ctx, guild_config).await {
+                error!(
+                    "Failed to regenerate member list for guild {} after member addition: {:?}",
+                    guild_id, e
+                );
+            } else {
+                info!(
+                    "Member list updated for guild {} after new member joined",
+                    guild_id
+                );
+            }
         }
     }
 
     async fn guild_member_removal(
         &self,
         ctx: Context,
-        _guild_id: GuildId,
+        guild_id: GuildId,
         user: serenity::model::user::User,
         _member_data_if_available: Option<serenity::model::guild::Member>,
     ) {
-        info!("Member left: {}", user.name);
+        let guild_id_u64 = guild_id.get();
 
-        if let Err(e) = self.generate_member_list(&ctx).await {
-            error!(
-                "Failed to regenerate member list after member removal: {:?}",
-                e
-            );
-        } else {
-            info!("Member list updated after member left");
+        // Check if this guild is configured
+        if let Some(guild_config) = self.config.get_guild_config(guild_id_u64) {
+            info!("Member left guild {}: {}", guild_id_u64, user.name);
+
+            if let Err(e) = self.generate_member_list(&ctx, guild_config).await {
+                error!(
+                    "Failed to regenerate member list for guild {} after member removal: {:?}",
+                    guild_id_u64, e
+                );
+            } else {
+                info!(
+                    "Member list updated for guild {} after member left",
+                    guild_id_u64
+                );
+            }
         }
     }
 
@@ -264,18 +298,26 @@ impl EventHandler for Handler {
         ctx: Context,
         _old_if_available: Option<serenity::model::guild::Member>,
         new: Option<serenity::model::guild::Member>,
-        _event: serenity::model::event::GuildMemberUpdateEvent,
+        event: serenity::model::event::GuildMemberUpdateEvent,
     ) {
-        if let Some(member) = new {
-            info!("Member updated: {}", member.user.name);
+        let guild_id = event.guild_id.get();
 
-            if let Err(e) = self.generate_member_list(&ctx).await {
-                error!(
-                    "Failed to regenerate member list after member update: {:?}",
-                    e
-                );
-            } else {
-                info!("Member list updated after member info changed");
+        // Check if this guild is configured
+        if let Some(guild_config) = self.config.get_guild_config(guild_id) {
+            if let Some(member) = new {
+                info!("Member updated in guild {}: {}", guild_id, member.user.name);
+
+                if let Err(e) = self.generate_member_list(&ctx, guild_config).await {
+                    error!(
+                        "Failed to regenerate member list for guild {} after member update: {:?}",
+                        guild_id, e
+                    );
+                } else {
+                    info!(
+                        "Member list updated for guild {} after member info changed",
+                        guild_id
+                    );
+                }
             }
         }
     }
