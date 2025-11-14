@@ -245,6 +245,24 @@ MIT
 
 Pull requests welcome! Please ensure code is formatted with `cargo fmt` and passes `cargo clippy` before submitting.
 
+### Setting Up Git Hooks
+
+To automatically check code quality before committing, install the git hooks:
+
+```bash
+./scripts/install-git-hooks.sh
+```
+
+This will set up a pre-commit hook that runs:
+1. `cargo fmt -- --check` - Ensures code is properly formatted
+2. `cargo build` - Verifies the code compiles
+3. `cargo clippy -- -D warnings` - Checks for common mistakes and style issues
+
+If any check fails, the commit will be blocked. To bypass the hooks (not recommended), use:
+```bash
+git commit --no-verify
+```
+
 ## Amateur Radio Info
 
 This bot recognizes standard amateur radio callsign formats used worldwide. Common prefixes include:

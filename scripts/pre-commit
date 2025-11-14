@@ -1,0 +1,32 @@
+#!/bin/bash
+# Pre-commit hook to ensure code quality
+
+set -e
+
+echo "Running pre-commit checks..."
+
+# Check if code is formatted
+echo "1. Checking code formatting (cargo fmt)..."
+if ! cargo fmt -- --check; then
+    echo "❌ Code is not formatted. Run 'cargo fmt' to fix."
+    exit 1
+fi
+echo "✓ Code formatting passed"
+
+# Check if code builds
+echo "2. Building project (cargo build)..."
+if ! cargo build --quiet; then
+    echo "❌ Build failed. Fix compilation errors before committing."
+    exit 1
+fi
+echo "✓ Build passed"
+
+# Run clippy
+echo "3. Running clippy checks (cargo clippy)..."
+if ! cargo clippy --quiet -- -D warnings; then
+    echo "❌ Clippy found issues. Fix them before committing."
+    exit 1
+fi
+echo "✓ Clippy passed"
+
+echo "✅ All pre-commit checks passed!"

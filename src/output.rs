@@ -9,11 +9,7 @@ pub struct OutputEntry {
     pub emoji_separator: String,
 }
 
-pub fn write_output_file(
-    path: &str,
-    entries: Vec<OutputEntry>,
-    title: Option<&str>,
-) -> Result<()> {
+pub fn write_output_file(path: &str, entries: Vec<OutputEntry>, title: Option<&str>) -> Result<()> {
     let mut file =
         File::create(path).with_context(|| format!("Failed to create output file: {}", path))?;
 
