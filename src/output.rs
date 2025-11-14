@@ -6,12 +6,12 @@ pub struct OutputEntry {
     pub callsign: String,
     pub name: String,
     pub suffix: String,
+    pub emoji_separator: String,
 }
 
 pub fn write_output_file(
     path: &str,
     entries: Vec<OutputEntry>,
-    emoji_separator: &str,
     title: Option<&str>,
 ) -> Result<()> {
     let mut file =
@@ -31,7 +31,7 @@ pub fn write_output_file(
         writeln!(
             file,
             "{} {} {} {}",
-            entry.callsign, emoji_separator, entry.name, entry.suffix
+            entry.callsign, entry.emoji_separator, entry.name, entry.suffix
         )
         .with_context(|| "Failed to write to output file")?;
     }

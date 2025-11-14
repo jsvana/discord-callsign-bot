@@ -105,10 +105,16 @@ impl Handler {
                     .clone()
                     .unwrap_or_else(|| self.config.output.default_suffix.clone());
 
+                let emoji_separator = override_config
+                    .emoji
+                    .clone()
+                    .unwrap_or_else(|| self.config.output.emoji_separator.clone());
+
                 entries.push(OutputEntry {
                     callsign,
                     name,
                     suffix,
+                    emoji_separator,
                 });
             } else if let Some(parsed) = parsed {
                 // Successfully parsed callsign from one of the name fields
@@ -144,6 +150,7 @@ impl Handler {
                     callsign: parsed.callsign,
                     name,
                     suffix: self.config.output.default_suffix.clone(),
+                    emoji_separator: self.config.output.emoji_separator.clone(),
                 });
             } else {
                 info!(
@@ -179,7 +186,6 @@ impl Handler {
         write_output_file(
             &self.config.output.file_path,
             unique_entries,
-            &self.config.output.emoji_separator,
             self.config.output.title.as_deref(),
         )
         .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;

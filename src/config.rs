@@ -43,6 +43,7 @@ pub struct Override {
     pub callsign: Option<String>,
     pub name: Option<String>,
     pub suffix: Option<String>,
+    pub emoji: Option<String>,
 }
 
 impl Config {

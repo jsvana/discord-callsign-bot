@@ -41,7 +41,7 @@ Perfect for:
 
 - **Deduplication**: Ensures each callsign appears only once in the output
 
-- **Manual Overrides**: Configure specific callsigns, names, or suffix text for individual users via TOML configuration
+- **Manual Overrides**: Configure specific callsigns, names, suffix text, or emoji separators for individual users via TOML configuration
 
 - **Configurable Output**: Customize emoji separators, default suffix text, and file titles
 
@@ -91,7 +91,7 @@ Update the following fields:
 
 ### 4. Add Manual Overrides (Optional)
 
-To override callsign/name/suffix for specific users:
+To override callsign/name/suffix/emoji for specific users:
 
 1. In Discord, right-click on a user and select "Copy User ID"
 2. Add an override section in `config.toml`:
@@ -101,6 +101,7 @@ To override callsign/name/suffix for specific users:
 callsign = "W1ABC"  # Optional: override callsign
 name = "John"       # Optional: override name
 suffix = "CQ CQ"    # Optional: override suffix text
+emoji = "✨"        # Optional: override emoji separator
 ```
 
 ## Usage
@@ -137,8 +138,8 @@ Example output (`members.txt`):
 ```
 # TITLE: Club members
 KI7QCF 📻 Forrest 73
-W6JSV 📻 Jay 73
 W1ABC 🌊 John CQ CQ
+W6JSV ✨ Jay 73
 ```
 
 - Callsigns are automatically converted to uppercase
@@ -207,6 +208,7 @@ All fields are optional. Only specify what you want to override:
 - `callsign`: Override the parsed callsign
 - `name`: Override the parsed name
 - `suffix`: Override the default suffix for this user
+- `emoji`: Override the emoji separator for this user
 
 ## Troubleshooting
 
