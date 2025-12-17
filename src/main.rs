@@ -349,8 +349,7 @@ async fn main() -> Result<()> {
         .init();
 
     // Load configuration
-    let config = Config::from_file(&args.config)
-        .map_err(|e| anyhow::anyhow!("Failed to load configuration: {}", e))?;
+    let config = Config::from_file(&args.config)?;
 
     info!("Configuration loaded from: {}", args.config);
 
