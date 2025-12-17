@@ -4,6 +4,7 @@ mod parser;
 mod qrz;
 
 use anyhow::Result;
+use clap::Parser;
 use config::Config;
 use output::{write_output_file, OutputEntry};
 use parser::CallsignParser;
@@ -12,9 +13,18 @@ use serenity::all::GuildId;
 use serenity::async_trait;
 use serenity::prelude::*;
 use std::collections::HashMap;
-use std::env;
 use std::sync::Arc;
 use tracing::{error, info, warn};
+
+/// Discord bot that generates member lists of amateur radio operators from callsigns
+#[derive(Parser, Debug)]
+#[command(name = "discord-callsign-bot")]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Path to the configuration file
+    #[arg(short, long, default_value = "config.toml", env = "CONFIG_PATH")]
+    config: String,
+}
 
 struct Handler {
     config: Config,
@@ -180,6 +190,7 @@ impl Handler {
             }
         }
 
+        dbg!(&unique_entries);
         info!(
             "Writing {} unique entries to file (filtered {} duplicates)",
             unique_entries.len(),
@@ -325,20 +336,23 @@ impl EventHandler for Handler {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Parse command-line arguments
+    let args = Args::parse();
+
     // Initialize logging
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(tracing::Level::INFO.into()),
+                .add_directive(tracing::Level::INFO.into())
+                .add_directive("qrz_xml=off".parse().unwrap()),
         )
         .init();
 
     // Load configuration
-    let config_path = env::var("CONFIG_PATH").unwrap_or_else(|_| "config.toml".to_string());
-    let config = Config::from_file(&config_path)
+    let config = Config::from_file(&args.config)
         .map_err(|e| anyhow::anyhow!("Failed to load configuration: {}", e))?;
 
-    info!("Configuration loaded from: {}", config_path);
+    info!("Configuration loaded from: {}", args.config);
 
     // Initialize QRZ client if credentials are configured
     let qrz_client = if let Some(qrz_config) = &config.qrz {

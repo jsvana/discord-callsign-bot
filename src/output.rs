@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use std::fs::File;
 use std::io::Write;
 
+#[derive(Debug)]
 pub struct OutputEntry {
     pub callsign: String,
     pub name: String,

@@ -26,3 +26,4 @@ Thumbs.db
 *.log
 
 .claude/
+discord-callsign-bot.toml
