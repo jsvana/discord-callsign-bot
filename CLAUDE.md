@@ -8,7 +8,7 @@ A Rust-based Discord bot that automatically generates and maintains formatted me
 - Monitors multiple Discord servers (guilds) simultaneously
 - Parses callsigns from member names using regex patterns
 - Optionally looks up operator information from QRZ.com
-- Generates sorted text files with callsigns, names, and configurable suffixes
+- Generates member lists committed to GitHub repositories
 - Updates in real-time when members join/leave or update their profiles
 
 ## Development Commands
@@ -29,6 +29,9 @@ CONFIG_PATH=/path/to/config.toml cargo run
 
 # Run with debug logging
 RUST_LOG=debug cargo run
+
+# Run with GitHub token (required for output)
+GITHUB_TOKEN=your_token_here cargo run
 ```
 
 ### Testing and Quality
@@ -60,17 +63,17 @@ The repository has pre-commit hooks that run `cargo fmt`, `cargo build`, and `ca
 
 ### Module Structure
 
-The codebase is organized into 5 modules:
+The codebase is organized into 6 modules:
 
 - **main.rs**: Discord bot event handler and orchestration
-  - `Handler` struct owns config, parser, and QRZ client
+  - `Handler` struct owns config, parser, QRZ client, and GitHub client
   - Implements `EventHandler` trait for Discord events (ready, member_addition, member_removal, member_update)
   - `generate_member_list()` is the core function that processes members for a guild
 
 - **config.rs**: Configuration management
   - Loads TOML config from file (default: `config.toml`)
   - Supports multiple guild configurations with per-guild overrides
-  - Each guild has separate output settings (file path, suffix, emoji, title)
+  - Each guild has separate output settings (repo, path, branch, suffix, emoji, title)
   - User overrides are keyed by Discord user ID and are per-guild
 
 - **parser.rs**: Callsign parsing logic
@@ -88,8 +91,14 @@ The codebase is organized into 5 modules:
   - `lookup_callsign()` fetches operator info
   - `get_display_name()` prioritizes: nickname → fname → name
 
-- **output.rs**: File generation
-  - `write_output_file()` creates sorted text files
+- **github.rs**: GitHub API integration
+  - `GithubClient` handles authentication and API calls
+  - Uses `GITHUB_TOKEN` environment variable for authentication
+  - `commit_file()` creates or updates files in GitHub repositories
+  - Supports specifying target repository, file path, and branch
+
+- **output.rs**: Output content generation
+  - `generate_output_content()` returns formatted String content
   - Format: `<CALLSIGN> <EMOJI> <NAME> <SUFFIX>`
   - Optional title header: `# TITLE: <title>`
   - Entries are sorted alphabetically by callsign
@@ -111,7 +120,7 @@ The codebase is organized into 5 modules:
      - If QRZ client available, lookup operator name
      - Create `OutputEntry` with callsign, name, suffix, emoji
    - Deduplicate by callsign (keep first occurrence)
-   - Write sorted entries to configured output file
+   - Commit sorted entries to configured GitHub repository
 
 3. **Real-time updates** (event handlers):
    - `guild_member_addition`: Regenerate list when member joins
@@ -123,16 +132,17 @@ The codebase is organized into 5 modules:
 The TOML config supports:
 - Single Discord bot token (shared across all guilds)
 - Optional QRZ credentials (shared across all guilds)
+- `GITHUB_TOKEN` environment variable (required for committing output)
 - Array of guild configs (`[[guilds]]`), each with:
   - `guild_id`: Discord server ID (u64)
   - `bot_nickname`: Optional custom nickname for this guild
-  - `output`: File path, default suffix, emoji separator, optional title
+  - `output`: GitHub repo, file path, branch, default suffix, emoji separator, optional title
   - `overrides`: HashMap of Discord user IDs to override settings (callsign, name, suffix, emoji)
 
 ### Multi-Guild Support
 
 The bot monitors multiple Discord servers simultaneously. Each guild has:
-- Independent output file
+- Independent GitHub output (repo, path, branch)
 - Separate default suffix and emoji settings
 - Per-guild user overrides (same user can have different callsigns/names on different servers)
 - Optional per-guild bot nickname

@@ -1,6 +1,6 @@
 # Discord Callsign Bot
 
-A Rust-based Discord bot that automatically generates and maintains a formatted list of amateur radio operators from your Discord server. The bot intelligently parses callsigns from member names, optionally looks up operator information from QRZ.com, and outputs a clean, sorted text file perfect for sharing with your radio club or field day operations.
+A Rust-based Discord bot that automatically generates and maintains a formatted list of amateur radio operators from your Discord server. The bot intelligently parses callsigns from member names, optionally looks up operator information from QRZ.com, and commits clean, sorted member lists directly to GitHub repositories - perfect for sharing with your radio club or field day operations.
 
 ## What Does This Bot Do?
 
@@ -9,7 +9,7 @@ This bot helps amateur radio clubs and groups manage their member rosters by:
 1. **Scanning your Discord servers** (supports multiple servers!) for members with callsigns in their names
 2. **Automatically parsing callsigns** from various name formats (nicknames, display names, usernames)
 3. **Looking up operator names** from QRZ.com's callbook database (optional)
-4. **Generating formatted text files** with callsigns, names, and custom suffixes (separate file per server)
+4. **Committing formatted member lists to GitHub** with callsigns, names, and custom suffixes (separate output per server)
 5. **Updating in real-time** when members join, leave, or update their profiles
 
 Perfect for:
@@ -51,6 +51,7 @@ Perfect for:
 
 - Rust 1.70+ (install from https://rustup.rs/)
 - A Discord Bot Token (see Setup section)
+- A GitHub Personal Access Token with `repo` scope (see Setup section)
 
 ## Setup
 
@@ -68,13 +69,21 @@ Perfect for:
    - Select permissions: `Read Messages/View Channels`
 7. Copy the generated URL and open it in your browser to invite the bot to your server
 
-### 2. Get Your Guild (Server) IDs
+### 2. Create a GitHub Personal Access Token
+
+1. Go to https://github.com/settings/tokens
+2. Click "Generate new token" (classic)
+3. Give it a descriptive name (e.g., "Callsign Bot")
+4. Select the `repo` scope (full control of private repositories)
+5. Click "Generate token" and copy the token (save it somewhere safe)
+
+### 3. Get Your Guild (Server) IDs
 
 1. In Discord, go to User Settings → Advanced → Enable "Developer Mode"
 2. Right-click on your server icon and click "Copy Server ID"
 3. Repeat for each server you want the bot to monitor
 
-### 3. Configure the Bot
+### 4. Configure the Bot
 
 ```bash
 # Copy the example configuration
@@ -87,13 +96,15 @@ nano config.toml
 Update the following fields:
 - `discord.token`: Your bot token from step 1
 - For each server you want to monitor, add a `[[guilds]]` entry with:
-  - `guild_id`: Your server ID from step 2
-  - `guilds.output.file_path`: Where to save the output file for this server (e.g., `members.txt`)
+  - `guild_id`: Your server ID from step 3
+  - `guilds.output.repo`: GitHub repository (e.g., `username/repo-name`)
+  - `guilds.output.path`: File path within the repository (e.g., `members.txt`)
+  - `guilds.output.branch`: Target branch (e.g., `main`)
   - `guilds.output.default_suffix`: Text to append after each entry (e.g., "73")
 
 You can configure multiple servers - see the example in the configuration file!
 
-### 4. Add Manual Overrides (Optional)
+### 5. Add Manual Overrides (Optional)
 
 To override callsign/name/suffix/emoji for specific users (per-server):
 
@@ -105,7 +116,9 @@ To override callsign/name/suffix/emoji for specific users (per-server):
 guild_id = 123456789
 
 [guilds.output]
-file_path = "members.txt"
+repo = "username/repo-name"
+path = "members.txt"
+branch = "main"
 # ... other settings ...
 
 [guilds.overrides."USER_ID_HERE"]
@@ -125,8 +138,8 @@ Note: Overrides are per-server, so the same user can have different callsigns/na
 # Build the project
 cargo build --release
 
-# Run the bot
-cargo run --release
+# Run the bot (GITHUB_TOKEN is required)
+GITHUB_TOKEN=your_github_token cargo run --release
 ```
 
 The bot will:
@@ -134,9 +147,9 @@ The bot will:
 2. Fetch all members from the configured server
 3. Parse callsigns from multiple name fields (nickname, global name, username)
 4. Look up names from QRZ.com (if configured)
-5. Generate the output file
+5. Commit the member list to the configured GitHub repository
 6. Stay running and monitor for member changes
-7. Automatically regenerate the file when members join, leave, or update their profiles
+7. Automatically update the GitHub file when members join, leave, or update their profiles
 
 **Note**: The bot runs continuously to keep the member list up-to-date. Press Ctrl+C to stop it.
 
@@ -163,13 +176,13 @@ W6JSV ✨ Jay 73
 ### Running with Custom Config Path
 
 ```bash
-CONFIG_PATH=/path/to/config.toml cargo run --release
+GITHUB_TOKEN=your_token CONFIG_PATH=/path/to/config.toml cargo run --release
 ```
 
 ### Enable Debug Logging
 
 ```bash
-RUST_LOG=debug cargo run --release
+GITHUB_TOKEN=your_token RUST_LOG=debug cargo run --release
 ```
 
 ## Building for Production
@@ -190,8 +203,8 @@ cargo build --release
 # Build the Docker image
 docker build -t discord-callsign-bot .
 
-# Run with mounted config
-docker run -v $(pwd)/config.toml:/app/config.toml discord-callsign-bot
+# Run with mounted config and GitHub token
+docker run -e GITHUB_TOKEN=your_token -v $(pwd)/config.toml:/app/config.toml discord-callsign-bot
 ```
 
 ## Configuration Reference
@@ -215,7 +228,9 @@ Each `[[guilds]]` entry configures monitoring for one Discord server:
 
 ### `[guilds.output]`
 Output configuration for each server:
-- `file_path` (required): Path where the member list will be saved for this server
+- `repo` (required): GitHub repository in `owner/repo` format
+- `path` (required): File path within the repository (e.g., `members.txt`)
+- `branch` (required): Target branch for commits (e.g., `main`)
 - `default_suffix` (required): Default text appended after each member entry
 - `emoji_separator` (optional): Emoji or text between callsign and name (default: "📻")
 - `title` (optional): Title header for the output file
@@ -252,9 +267,11 @@ Per-server user overrides. All fields are optional. Only specify what you want t
 - Check the logs for warnings about duplicate callsigns
 - Users with the same callsign will only appear once in the output
 
-### Permission denied errors
-- Ensure the output directory is writable
-- Check file system permissions for the configured `output.file_path`
+### GitHub commit errors
+- Ensure `GITHUB_TOKEN` environment variable is set
+- Verify the token has `repo` scope permissions
+- Check that the repository and branch exist
+- Ensure the token owner has write access to the repository
 
 ## License
 
