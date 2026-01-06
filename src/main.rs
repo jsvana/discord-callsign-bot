@@ -216,7 +216,15 @@ impl Handler {
                 "Update member list",
             )
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to commit to GitHub: {}", e))?;
+            .map_err(|e| {
+                anyhow::anyhow!(
+                    "Failed to commit to {}/{} on branch {}: {}",
+                    guild_config.output.repo,
+                    guild_config.output.path,
+                    guild_config.output.branch,
+                    e
+                )
+            })?;
 
         info!(
             "Successfully committed member list to {}/{}",
@@ -255,7 +263,7 @@ impl EventHandler for Handler {
                     "Failed to generate member list for guild {}: {:?}",
                     guild_id, e
                 );
-                std::process::exit(1);
+                // Continue with other guilds instead of crashing
             }
         }
 
