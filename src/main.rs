@@ -7,7 +7,8 @@ mod qrz;
 use anyhow::Result;
 use clap::Parser;
 use config::Config;
-use output::{write_output_file, OutputEntry};
+use github::GitHubClient;
+use output::{generate_output_content, OutputEntry};
 use parser::CallsignParser;
 use qrz::QrzClient;
 use serenity::all::GuildId;
@@ -31,14 +32,20 @@ struct Handler {
     config: Config,
     parser: CallsignParser,
     qrz_client: Option<Arc<QrzClient>>,
+    github_client: GitHubClient,
 }
 
 impl Handler {
-    fn new(config: Config, qrz_client: Option<Arc<QrzClient>>) -> Self {
+    fn new(
+        config: Config,
+        qrz_client: Option<Arc<QrzClient>>,
+        github_client: GitHubClient,
+    ) -> Self {
         Self {
             config,
             parser: CallsignParser::new(),
             qrz_client,
+            github_client,
         }
     }
 
@@ -191,24 +198,29 @@ impl Handler {
             }
         }
 
-        dbg!(&unique_entries);
         info!(
-            "Writing {} unique entries to file (filtered {} duplicates)",
+            "Committing {} unique entries to GitHub (filtered {} duplicates)",
             unique_entries.len(),
             seen_callsigns.len() - unique_entries.len()
         );
 
-        // Write the output file
-        write_output_file(
-            &guild_config.output.file_path,
-            unique_entries,
-            guild_config.output.title.as_deref(),
-        )
-        .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
+        // Generate content and commit to GitHub
+        let content = generate_output_content(unique_entries, guild_config.output.title.as_deref());
+
+        self.github_client
+            .commit_file(
+                &guild_config.output.repo,
+                &guild_config.output.path,
+                &guild_config.output.branch,
+                &content,
+                "Update member list",
+            )
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to commit to GitHub: {}", e))?;
 
         info!(
-            "Successfully generated member list at: {}",
-            guild_config.output.file_path
+            "Successfully committed member list to {}/{}",
+            guild_config.output.repo, guild_config.output.path
         );
 
         Ok(())
@@ -375,11 +387,16 @@ async fn main() -> Result<()> {
         None
     };
 
+    // Initialize GitHub client
+    info!("Initializing GitHub client...");
+    let github_client = GitHubClient::new()?;
+    info!("GitHub client initialized successfully");
+
     // Set up Discord client
     let intents = GatewayIntents::GUILDS | GatewayIntents::GUILD_MEMBERS;
 
     let mut client = Client::builder(&config.discord.token, intents)
-        .event_handler(Handler::new(config, qrz_client))
+        .event_handler(Handler::new(config, qrz_client, github_client))
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create Discord client: {}", e))?;
 

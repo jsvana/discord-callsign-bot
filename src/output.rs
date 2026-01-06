@@ -34,14 +34,12 @@ mod tests {
 
     #[test]
     fn test_generate_output_content_basic() {
-        let entries = vec![
-            OutputEntry {
-                callsign: "W6JSV".to_string(),
-                name: "Jay".to_string(),
-                suffix: "".to_string(),
-                emoji_separator: "📻".to_string(),
-            },
-        ];
+        let entries = vec![OutputEntry {
+            callsign: "W6JSV".to_string(),
+            name: "Jay".to_string(),
+            suffix: "".to_string(),
+            emoji_separator: "📻".to_string(),
+        }];
 
         let result = generate_output_content(entries, None);
         assert_eq!(result, "W6JSV 📻 Jay \n");
@@ -49,14 +47,12 @@ mod tests {
 
     #[test]
     fn test_generate_output_content_with_title() {
-        let entries = vec![
-            OutputEntry {
-                callsign: "W6JSV".to_string(),
-                name: "Jay".to_string(),
-                suffix: "".to_string(),
-                emoji_separator: "📻".to_string(),
-            },
-        ];
+        let entries = vec![OutputEntry {
+            callsign: "W6JSV".to_string(),
+            name: "Jay".to_string(),
+            suffix: "".to_string(),
+            emoji_separator: "📻".to_string(),
+        }];
 
         let result = generate_output_content(entries, Some("Test Title"));
         assert!(result.starts_with("# TITLE: Test Title\n"));
