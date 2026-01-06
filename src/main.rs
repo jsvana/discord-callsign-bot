@@ -1,4 +1,5 @@
 mod config;
+mod github;
 mod output;
 mod parser;
 mod qrz;
