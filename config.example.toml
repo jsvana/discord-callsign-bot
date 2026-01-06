@@ -1,0 +1,25 @@
+[discord]
+token = "your-discord-bot-token"
+
+# Optional: QRZ credentials for operator name lookups
+# [qrz]
+# username = "your-qrz-username"
+# password = "your-qrz-password"
+
+[[guilds]]
+guild_id = 123456789012345678
+bot_nickname = "Callsign Bot"
+
+[guilds.output]
+repo = "username/repo-name"
+path = "members/guild-name.txt"
+branch = "main"
+default_suffix = ""
+emoji_separator = "📻"
+title = "Guild Member List"
+
+# Optional: Per-user overrides
+# [guilds.overrides."discord-user-id"]
+# callsign = "W1AW"
+# name = "ARRL HQ"
+# suffix = "(Special)"
