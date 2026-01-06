@@ -32,11 +32,18 @@ pub struct QrzConfig {
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct OutputConfig {
-    pub file_path: String,
+    pub repo: String,
+    pub path: String,
+    #[serde(default = "default_branch")]
+    pub branch: String,
     pub default_suffix: String,
     #[serde(default = "default_emoji_separator")]
     pub emoji_separator: String,
     pub title: Option<String>,
+}
+
+fn default_branch() -> String {
+    "main".to_string()
 }
 
 fn default_emoji_separator() -> String {
